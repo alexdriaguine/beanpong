@@ -50,4 +50,4 @@ yarn start jane,alex,sophie,jasmine
 
 This will generate a new sheet(tab) in the spreadsheet you created earlier that looks like this
 
-![Image of Sheet](https://github.com/alexdriaguine/beanpong/example-sheet.png)
+![Image of Sheet](https://raw.githubusercontent.com/alexdriaguine/beanpong/master/example-sheet.png)
