@@ -1,5 +1,5 @@
 import test, {ExecutionContext} from 'ava'
-import {generate, Game} from '.'
+import {generate, Game} from './generate-games'
 
 const validateAmountOfGames = (
   players: string[],
