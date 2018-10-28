@@ -1,6 +1,7 @@
 import {clientEmail, privateKey, spreadsheetId} from './credentials'
 import {google, sheets_v4} from 'googleapis'
-import {Game} from './generate-games'
+import {Game, generate} from './generate-games'
+import {create} from 'domain'
 
 const googleAuthClient = new google.auth.JWT(
   clientEmail,
@@ -10,7 +11,6 @@ const googleAuthClient = new google.auth.JWT(
 )
 const sheets = google.sheets({version: 'v4', auth: googleAuthClient})
 
-// Helper for the header color
 const colors = {
   headerBackground: {
     red: 0.196,
@@ -33,23 +33,27 @@ const headerText = {
 const headerFields =
   'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
 
-export async function createNewTournamentSheet(title: string) {
+async function createNewTournamentSheet(title: string) {
   const {
     data: {replies},
-  } = await sheets.spreadsheets.batchUpdate({
-    spreadsheetId: spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          addSheet: {
-            properties: {
-              title,
+  } = await sheets.spreadsheets
+    .batchUpdate({
+      spreadsheetId: spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            addSheet: {
+              properties: {
+                title,
+              },
             },
           },
-        },
-      ],
-    },
-  })
+        ],
+      },
+    })
+    .catch(err => {
+      throw err
+    })
 
   if (!replies) {
     throw new Error('could not add a sheet')
@@ -100,7 +104,7 @@ const getHeaderRepeatCellConfiguration = ({
   fields: headerFields,
 })
 
-export async function styleHeaders({
+async function styleHeaders({
   sheetId,
   games,
 }: {
@@ -128,7 +132,7 @@ export async function styleHeaders({
   })
 }
 
-export async function fillTournamentSheet({
+async function fillTournamentSheet({
   title,
   games,
   players,
@@ -138,7 +142,6 @@ export async function fillTournamentSheet({
   players: string[]
 }) {
   const startOfStandings = games.length + 4 // offset. 1 is header, then n games, then one empty and one header
-
   return sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${title}!A1:E${games.length + 10}`,
@@ -164,4 +167,24 @@ export async function fillTournamentSheet({
       ],
     },
   })
+}
+
+const catchAndRethrow = (err: Error) => {
+  throw err
+}
+
+interface GenerateTournamentArgs {
+  title: string
+  players: string[]
+}
+export async function generateTournament({
+  title,
+  players,
+}: GenerateTournamentArgs) {
+  const games = generate(players)
+
+  const {sheetId} = await createNewTournamentSheet(title).catch(catchAndRethrow)
+  await styleHeaders({sheetId, games}).catch(catchAndRethrow)
+  await fillTournamentSheet({title, games, players}).catch(catchAndRethrow)
+  return sheetId
 }

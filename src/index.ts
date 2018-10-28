@@ -1,41 +1,54 @@
-import {clientEmail, privateKey, spreadsheetId} from './credentials'
-import {google} from 'googleapis'
-import {generate} from './generate-games'
-import {
-  createNewTournamentSheet,
-  fillTournamentSheet,
-  styleHeaders,
-} from './sheets'
+import {generateTournament} from './sheets'
+import program from 'commander'
+import ow from 'ow'
+import ora from 'ora'
+import {spreadsheetId} from './credentials'
 
 function run(players: string[]) {
   const title = `Beanpong tournament ${new Date().toLocaleDateString()}(${Date.now()})`
-  const games = generate(players)
 
-  return createNewTournamentSheet(title)
-    .then(({sheetId}) => styleHeaders({sheetId, games}))
-    .then(() => fillTournamentSheet({title, games, players}))
+  return generateTournament({title, players})
 }
 
-const args = process.argv.slice(2)
-const players = args[0].split(',').filter(Boolean)
+const validateTitle = ow.create(ow.string.minLength(2))
+const validatePlayers = ow.create(ow.array.ofType(ow.string).minLength(3))
 
-if (players.length < 3) {
-  console.log('A tournament needs at least 3 players..')
+const validate = (fn: () => void) => {
+  try {
+    fn
+    return [null]
+  } catch (err) {
+    return [err.message]
+  }
+}
+
+const parseList = (val: string) => val.split(',')
+program
+  .version('0.0.1')
+  .usage('<options>')
+  .arguments('<title> <players>')
+  .option('-t, --title <title>', 'Title of tournament')
+  .option('-p, --players <players>', 'Players', parseList)
+  .parse(process.argv)
+
+const spinner = ora('Generating sheet').start()
+const {title, players} = program
+
+try {
+  validatePlayers(players)
+  validateTitle(title)
+} catch (err) {
+  spinner.fail(err.message)
   process.exit(1)
 }
 
-const uniqe = new Set(players)
-if (players.length !== uniqe.size) {
-  console.log('All players need unique names')
-  process.exit(1)
-}
-
-run(players)
-  .then(() => {
-    console.log('Tournament is ready!')
+generateTournament({title, players})
+  .then(sheetId => {
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${sheetId}`
+    spinner.succeed(`Tournament generated! Check it out at ${url}`)
     process.exit(0)
   })
   .catch(err => {
-    console.log('Error: ', err)
+    spinner.fail(err.message)
     process.exit(1)
   })
