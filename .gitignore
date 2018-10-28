@@ -1,0 +1,5 @@
+credentials.ts
+dist/
+.vscode/
+node_modules/
+*.log
