@@ -17,15 +17,18 @@ For this application to be able to write data to a spreadsheet, we need to creat
 
 1. Create an application in the Google Developer Console.
 2. Enable the Google Sheets API
-3. When prompted, click the "Create Credentials" button
+3. When prompted, click the "Create Credentials"-button
 4. Select "Google Sheets API" when asked "Which API are you using"
-5. Select "Web Server(eg. NodeJS") when asked "Where will you be calling the API from"
+5. Select "Web Server(eg. NodeJS)" when asked "Where will you be calling the API from"
 6. Select "Application Data" when asked what data you will be accessing
 7. Select "No" when asked "Are you planning to use this API with App Engine or Compute Engine?"
-8. Press the "What credentials do i need". Fill out the form. This is where you create the Service account that will be used to access the spreadsheet. Select "Project -> Editor" when asked about account role.
-9. Download the credentials file
-10. Open the file, copy the value of `client_email` into `clientEmail` variable of `credentials.example.ts`
-11. Copy the value of `private_key` into the `privateKey` variable of `credentials.example.ts`
+8. Press the "What credentials do i need"-button and Fill out the form. 
+9. Stay on this page, since this is where you create the Service account that will be used to access the spreadsheet. Do this by selecting "Project -> Editor" when asked about account role.
+10. Download the credentials file
+11. Open the file, copy the value of `client_email` into `clientEmail` variable of `credentials.example.ts`
+12. Copy the value of `private_key` into the `privateKey` variable of `credentials.example.ts`
+13. Rename `credentials.example.ts` to `credentials.ts`
+14. Done!
 
 ### Creating a spreadsheet
 
@@ -38,7 +41,7 @@ We have to create a spread sheet and make our service account
 ### Installing
 
 1. Install the dependencies with `yarn` or `npm install`
-2. Compile ts -> js with `yarn compile`
+2. Compile ts -> js with `yarn compile` or `npm compile` 
 
 ### Running
 
