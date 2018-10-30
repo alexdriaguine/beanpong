@@ -29,7 +29,6 @@
     ]
   },
   "dependencies": {
-    "await-to-js": "^2.0.1",
     "commander": "^2.19.0",
     "googleapis": "34",
     "ora": "^3.0.0",
