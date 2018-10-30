@@ -51,3 +51,9 @@ yarn start jane,alex,sophie,jasmine
 This will generate a new sheet(tab) in the spreadsheet you created earlier that looks like this
 
 ![Image of Sheet](https://raw.githubusercontent.com/alexdriaguine/beanpong/master/example.png)
+
+## TODO
+- [ ] Sorted "Final Standing" table with tournament points to the winnder (3p winner, 2p second, 1p third)
+- [ ] Make "Knäck mode" optional, via a parameter
+- [ ] More config options? Or a config.js file with commong stufs ("Knäck" name, "Knäck" extra points, colors etc)
+- [ ] Make OAuth mode available and export as npm module to be used as a backend for a UI

@@ -500,10 +500,6 @@ ava@1.0.0-rc.1:
     unique-temp-dir "^1.0.0"
     update-notifier "^2.5.0"
 
-await-to-js@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/await-to-js/-/await-to-js-2.0.1.tgz#fcb8a2178c763e2970aef1da9daf5c493e3653e0"
-
 axios@^0.18.0:
   version "0.18.0"
   resolved "http://registry.npmjs.org/axios/-/axios-0.18.0.tgz#32d53e4851efdc0a11993b6cd000789d70c05102"
