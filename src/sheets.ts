@@ -116,15 +116,16 @@ async function styleHeaders({
     requestBody: {
       requests: [
         {
-          repeatCell: getHeaderRepeatCellConfiguration({sheetId}),
+          repeatCell: getHeaderRepeatCellConfiguration({
+            sheetId,
+            endColumnIndex: 7,
+          }),
         },
         {
           repeatCell: getHeaderRepeatCellConfiguration({
             sheetId,
             startRowIndex: games.length + 2,
             endRowIndex: games.length + 3,
-            startColumnIndex: 0,
-            endColumnIndex: 3,
           }),
         },
       ],
@@ -141,28 +142,53 @@ async function fillTournamentSheet({
   games: Game[]
   players: string[]
 }) {
-  const startOfStandings = games.length + 4 // offset. 1 is header, then n games, then one empty and one header
+  const startOfStandings = (n: number) => games.length + 4 + n // offset. 1 is header, then n games, then one empty and one header
+  const startOfGames = (n: number) => n + 2 // 1 is header, games starts at 2
   return sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${title}!A1:E${games.length + 10}`,
+    range: `${title}!A1:G${games.length + 10}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
       values: [
-        ['Home', 'Away', 'HomeScore', 'AwayScore', 'Winner'],
+        [
+          'Home',
+          'Away',
+          'HomeScore',
+          'AwayScore',
+          'Winner',
+          'Knäck (+)',
+          'Knäck (-)',
+        ],
         ...games.map((game, i) => [
           ...game,
           undefined,
           undefined,
-          `=IF(AND(C${i + 2}=0, D${i + 2}=0), "Not played", IF(C${i +
-            2} - D${i + 2} > 0, A${i + 2}, B${i + 2}))`,
+          `=IF(AND(C${startOfGames(i)}=0, D${startOfGames(
+            i,
+          )}=0), "Not played", IF(C${i + 2} - D${startOfGames(
+            i,
+          )} > 0, A${startOfGames(i)}, B${startOfGames(i)}))`,
+          `=IF(AND(C${startOfGames(i)}=5, D${startOfGames(
+            i,
+          )}=0), A${startOfGames(i)}, IF(AND(D${i + 2}=5, C${startOfGames(
+            i,
+          )}=0), B${startOfGames(i)}, "-"))`,
+          `=IF(F${startOfGames(i)}=A${startOfGames(i)}, B${startOfGames(
+            i,
+          )}, IF(F${startOfGames(i)}=B${startOfGames(i)}, A${startOfGames(
+            i,
+          )}, "-"))`,
         ]),
         [],
-        ['Player', 'Wins', 'Points'],
+        ['Player', 'Wins', 'Knäck (+)', 'Knäck (-)', 'Points'],
         ...players.map((player, i) => [
           player,
-          `=COUNTIF(E:E, "${player}")
-          `,
-          `=B${startOfStandings + i} * 2`,
+          `=COUNTIF(E2:E${games.length + 1}, "${player}")`,
+          `=COUNTIF(F2:F${games.length + 1}, A${startOfStandings(i)})`,
+          `=COUNTIF(G2:G${games.length + 1}, A${startOfStandings(i)})`,
+          `=B${startOfStandings(i)}*2 + C${startOfStandings(
+            i,
+          )} * 1 - D${startOfStandings(i)} * 1`,
         ]),
       ],
     },
