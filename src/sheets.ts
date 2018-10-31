@@ -2,6 +2,7 @@ import {clientEmail, privateKey, spreadsheetId} from './credentials'
 import {google, sheets_v4} from 'googleapis'
 import {Game, generate} from './generate-games'
 import {create} from 'domain'
+import {isDeepStrictEqual} from 'util'
 
 const googleAuthClient = new google.auth.JWT(
   clientEmail,
@@ -142,54 +143,100 @@ async function fillTournamentSheet({
   games: Game[]
   players: string[]
 }) {
+  // Sheets start at 1, then one header and one empty row. Start counting att
+  // array index so we add another one
+  const startOfStandingOffset = 4
+  // Games start at row 2, we start at array index so add another one
+  const startOfGamesOffset = 2
   const startOfStandings = (n: number) => games.length + 4 + n // offset. 1 is header, then n games, then one empty and one header
   const startOfGames = (n: number) => n + 2 // 1 is header, games starts at 2
+
+  const getCell = (column: string, row: number | string) => `${column}${row}`
+
+  const GameColumns = {
+    Home: 'A',
+    Away: 'B',
+    HomeScore: 'C',
+    AwayScore: 'D',
+    Winner: 'E',
+    'Knäck (+)': 'F',
+    'Knäck (-)': 'G',
+  }
+
+  const StandingsColumns = {
+    Player: 'A',
+    Wins: 'B',
+    'Knäck (+)': 'C',
+    'Knäck (-)': 'D',
+    Points: 'F',
+  }
+  const maxPoints = 5
   return sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${title}!A1:G${games.length + 10}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
       values: [
-        [
-          'Home',
-          'Away',
-          'HomeScore',
-          'AwayScore',
-          'Winner',
-          'Knäck (+)',
-          'Knäck (-)',
-        ],
-        ...games.map((game, i) => [
-          ...game,
-          undefined,
-          undefined,
-          `=IF(AND(C${startOfGames(i)}=0, D${startOfGames(
-            i,
-          )}=0), "Not played", IF(C${i + 2} - D${startOfGames(
-            i,
-          )} > 0, A${startOfGames(i)}, B${startOfGames(i)}))`,
-          `=IF(AND(C${startOfGames(i)}=5, D${startOfGames(
-            i,
-          )}=0), A${startOfGames(i)}, IF(AND(D${i + 2}=5, C${startOfGames(
-            i,
-          )}=0), B${startOfGames(i)}, "-"))`,
-          `=IF(F${startOfGames(i)}=A${startOfGames(i)}, B${startOfGames(
-            i,
-          )}, IF(F${startOfGames(i)}=B${startOfGames(i)}, A${startOfGames(
-            i,
-          )}, "-"))`,
-        ]),
+        Object.keys(GameColumns),
+        ...games.map((game, i) => {
+          const currentRowNumber = startOfGames(i)
+          const ifElse = (condition: string, ifTrue: string, ifFalse: string) =>
+            `IF(${condition}, ${ifTrue}, ${ifFalse})`
+          const and = (...conditions: string[]) =>
+            `AND(${conditions.join(', ')})`
+          return [
+            ...game,
+            undefined,
+            undefined,
+            `=${ifElse(
+              `${and(
+                `${getCell(GameColumns.HomeScore, currentRowNumber)}=0`,
+                `${GameColumns.AwayScore}${currentRowNumber}=0`,
+              )}`,
+              `"-"`,
+              `${ifElse(
+                `${maxPoints} - D${currentRowNumber} > 0`,
+                `A${currentRowNumber}`,
+                `B${currentRowNumber}`,
+              )}`,
+            )}`,
+            `=${ifElse(
+              `${and(
+                `C${currentRowNumber}=${maxPoints}`,
+                `D${currentRowNumber}=0`,
+              )}`,
+              `A${currentRowNumber}`,
+              `${ifElse(
+                and(
+                  `D${currentRowNumber}=${maxPoints}`,
+                  `C${currentRowNumber}=0`,
+                ),
+                `B${currentRowNumber}`,
+                `"-"`,
+              )}`,
+            )}`,
+            `=${ifElse(
+              `F${currentRowNumber}=A${currentRowNumber}`,
+              `B${currentRowNumber}`,
+              `IF(F${currentRowNumber}=B${currentRowNumber}, A${currentRowNumber}, "-"))`,
+            )}`,
+          ]
+        }),
         [],
-        ['Player', 'Wins', 'Knäck (+)', 'Knäck (-)', 'Points'],
-        ...players.map((player, i) => [
-          player,
-          `=COUNTIF(E2:E${games.length + 1}, "${player}")`,
-          `=COUNTIF(F2:F${games.length + 1}, A${startOfStandings(i)})`,
-          `=COUNTIF(G2:G${games.length + 1}, A${startOfStandings(i)})`,
-          `=B${startOfStandings(i)}*2 + C${startOfStandings(
-            i,
-          )} * 1 - D${startOfStandings(i)} * 1`,
-        ]),
+        Object.keys(StandingsColumns),
+        ...players.map((player, i) => {
+          const countIf = (condition: string) => `COUNTIF(${condition})`
+          const currentRowNumber = startOfStandings(i)
+          const getTotalScore = (currentRowNumber: number) =>
+            `=B${currentRowNumber}*2 + C${currentRowNumber}*1 - D${currentRowNumber}*1`
+          return [
+            player,
+            `=${countIf(`E2:E${games.length + 1}, "${player}"`)}`,
+            `=${countIf(`F2:F${games.length + 1}, A${currentRowNumber}`)}`,
+            `=${countIf(`G2:G${games.length + 1}, A${currentRowNumber}`)}`,
+            getTotalScore(currentRowNumber),
+          ]
+        }),
       ],
     },
   })
