@@ -60,3 +60,4 @@ This will generate a new sheet(tab) in the spreadsheet you created earlier that 
 - [ ] Make "Knäck mode" optional, via a parameter
 - [ ] More config options? Or a config.js file with commong stufs ("Knäck" name, "Knäck" extra points, colors etc)
 - [ ] Make OAuth mode available and export as npm module to be used as a backend for a UI
+- [ ] Integration tests via puppeteer or something, generate a sheet (or many), go through them and see so that data matches up
