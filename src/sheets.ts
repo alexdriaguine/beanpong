@@ -34,6 +34,50 @@ const headerText = {
 const headerFields =
   'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
 
+const maxPoints = 5
+const startOfStandingsRowOffest = 4
+const startOfGamesRowOffset = 2
+const startOfStandings = (n: number, gamesLength: number) =>
+  gamesLength + startOfStandingsRowOffest + n
+const startOfGames = (n: number) => n + startOfGamesRowOffset
+const getCell = (column: string, row: number | string) => `${column}${row}`
+
+const GameColumns = {
+  Home: 'A',
+  Away: 'B',
+  HomeScore: 'C',
+  AwayScore: 'D',
+  Winner: 'E',
+  'Knäck (+)': 'F',
+  'Knäck (-)': 'G',
+}
+
+const StandingsColumns = {
+  Player: 'A',
+  Wins: 'B',
+  'Knäck (+)': 'C',
+  'Knäck (-)': 'D',
+  Points: 'F',
+}
+
+const ifElse = (condition: string, ifTrue: string, ifFalse: string) =>
+  `IF(${condition}, ${ifTrue}, ${ifFalse})`
+const and = (...conditions: string[]) => `AND(${conditions.join(', ')})`
+
+const countIf = (condition: string) => `COUNTIF(${condition})`
+
+const winPoints = 2
+const extraPoints = 1
+
+const getTotalScore = (currentRowNumber: number) =>
+  `=B${currentRowNumber}*${winPoints} + C${currentRowNumber}*${extraPoints} - D${currentRowNumber}*${extraPoints}`
+
+// Helper to remember whats going on when sending undefined
+type EmptyColumn = undefined
+const emptyColumn = (): EmptyColumn => undefined
+type EmptyRow = []
+const emptyRow = (): EmptyRow => []
+
 async function createNewTournamentSheet(title: string) {
   const {
     data: {replies},
@@ -143,34 +187,6 @@ async function fillTournamentSheet({
   games: Game[]
   players: string[]
 }) {
-  // Sheets start at 1, then one header and one empty row. Start counting att
-  // array index so we add another one
-  const startOfStandingOffset = 4
-  // Games start at row 2, we start at array index so add another one
-  const startOfGamesOffset = 2
-  const startOfStandings = (n: number) => games.length + 4 + n // offset. 1 is header, then n games, then one empty and one header
-  const startOfGames = (n: number) => n + 2 // 1 is header, games starts at 2
-
-  const getCell = (column: string, row: number | string) => `${column}${row}`
-
-  const GameColumns = {
-    Home: 'A',
-    Away: 'B',
-    HomeScore: 'C',
-    AwayScore: 'D',
-    Winner: 'E',
-    'Knäck (+)': 'F',
-    'Knäck (-)': 'G',
-  }
-
-  const StandingsColumns = {
-    Player: 'A',
-    Wins: 'B',
-    'Knäck (+)': 'C',
-    'Knäck (-)': 'D',
-    Points: 'F',
-  }
-  const maxPoints = 5
   return sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${title}!A1:G${games.length + 10}`,
@@ -180,14 +196,11 @@ async function fillTournamentSheet({
         Object.keys(GameColumns),
         ...games.map((game, i) => {
           const currentRowNumber = startOfGames(i)
-          const ifElse = (condition: string, ifTrue: string, ifFalse: string) =>
-            `IF(${condition}, ${ifTrue}, ${ifFalse})`
-          const and = (...conditions: string[]) =>
-            `AND(${conditions.join(', ')})`
+
           return [
             ...game,
-            undefined,
-            undefined,
+            emptyColumn(),
+            emptyColumn(),
             `=${ifElse(
               `${and(
                 `${getCell(GameColumns.HomeScore, currentRowNumber)}=0`,
@@ -218,17 +231,19 @@ async function fillTournamentSheet({
             `=${ifElse(
               `F${currentRowNumber}=A${currentRowNumber}`,
               `B${currentRowNumber}`,
-              `IF(F${currentRowNumber}=B${currentRowNumber}, A${currentRowNumber}, "-"))`,
+              `${ifElse(
+                `F${currentRowNumber}=B${currentRowNumber}`,
+                `A${currentRowNumber}`,
+                `"-"`,
+              )}`,
             )}`,
           ]
         }),
-        [],
+        emptyRow(),
         Object.keys(StandingsColumns),
         ...players.map((player, i) => {
-          const countIf = (condition: string) => `COUNTIF(${condition})`
-          const currentRowNumber = startOfStandings(i)
-          const getTotalScore = (currentRowNumber: number) =>
-            `=B${currentRowNumber}*2 + C${currentRowNumber}*1 - D${currentRowNumber}*1`
+          const currentRowNumber = startOfStandings(i, games.length)
+
           return [
             player,
             `=${countIf(`E2:E${games.length + 1}, "${player}"`)}`,
